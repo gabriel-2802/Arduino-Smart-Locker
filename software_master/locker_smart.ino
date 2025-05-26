@@ -6,6 +6,22 @@
 #include "icons.h"
 #include "utils.h"
 
+void myDigitalWrite(uint8_t pin, bool value) {
+  uint8_t bit = digitalPinToBitMask(pin);
+  uint8_t port = digitalPinToPort(pin);
+  volatile uint8_t* out;
+
+  if (port == NOT_A_PIN) return;
+
+  out = portOutputRegister(port);
+
+  if (value) {
+  *out |= bit; // Set bit HIGH
+  } else {
+  *out &= ~bit; // Set bit LOW
+  }
+}
+
 void requestSensorData() {
   Wire.requestFrom(SLAVE_ADDRESS, sizeof(SensorPacket));
   if (Wire.available() == sizeof(SensorPacket)) {
@@ -16,20 +32,20 @@ void requestSensorData() {
 void lock() {
   lockServo.write(SERVO_LOCK_POS);
   safeState.lock();
-  digitalWrite(LED_PIN, LOW);   // Turn OFF LED
+  myDigitalWrite(LED_PIN, LOW);   // Turn OFF LED
 }
 
 void unlock() {
   lockServo.write(SERVO_UNLOCK_POS);
-  digitalWrite(LED_PIN, HIGH);  // Turn ON LED
+  myDigitalWrite(LED_PIN, HIGH);  // Turn ON LED
 }
 
 bool isUserClose() {
-  digitalWrite(TRIG_PIN, LOW);
+  myDigitalWrite(TRIG_PIN, LOW);
   delayMicroseconds(2);
-  digitalWrite(TRIG_PIN, HIGH);
+  myDigitalWrite(TRIG_PIN, HIGH);
   delayMicroseconds(10);
-  digitalWrite(TRIG_PIN, LOW);
+  myDigitalWrite(TRIG_PIN, LOW);
   long duration = pulseIn(ECHO_PIN, HIGH, 30000);
   return (duration > 0 && (duration * 0.034 / 2) <= PROXIMITY_THRESHOLD_CM);
 }
@@ -50,7 +66,7 @@ void handlePhaseIdle() {
   // Handle tilt alert from slave
   if (packet.tilt) {
     failedAttempts = 3;  // Max out attempts to trigger buzzer
-    digitalWrite(BUZZER_PIN, HIGH);
+    myDigitalWrite(BUZZER_PIN, HIGH);
   }
 
   init_icons(lcd);
@@ -84,11 +100,6 @@ void handlePhaseIdle() {
   lockedPhase = PHASE_WAIT_INPUT;
 }
 
-
-
-
-
-
 void handlePhaseWaitInput() {
   char key = keypad.getKey();
   if (key >= '0' && key <= '9' && inputCode.length() < 4) {
@@ -104,7 +115,7 @@ void handlePhaseVerify() {
   if (safeState.unlock(inputCode)) {
     unlock();
     failedAttempts = 0;
-    digitalWrite(BUZZER_PIN, LOW);
+    myDigitalWrite(BUZZER_PIN, LOW);
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("Access Granted");
@@ -115,7 +126,7 @@ void handlePhaseVerify() {
     lcd.setCursor(0, 0);
     lcd.print("Access Denied");
     if (failedAttempts >= 3) {
-      digitalWrite(BUZZER_PIN, HIGH);
+      myDigitalWrite(BUZZER_PIN, HIGH);
     }
     lockedPhase = PHASE_DENIED;
   }
@@ -253,11 +264,11 @@ void setup() {
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
   pinMode(BUZZER_PIN, OUTPUT);
-  digitalWrite(BUZZER_PIN, LOW);
+  myDigitalWrite(BUZZER_PIN, LOW);
   Wire.begin();
   Serial.begin(115200);
   pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, LOW);  // Start off
+  myDigitalWrite(LED_PIN, LOW);  // Start off
 
 
   safeState.locked() ? lock() : unlock();
@@ -293,7 +304,7 @@ void loop() {
   // Trigger the alarm if tilt was detected even with no user
   if (packet.tilt) {
     failedAttempts = 3;
-    digitalWrite(BUZZER_PIN, HIGH);
+    myDigitalWrite(BUZZER_PIN, HIGH);
   }
   
 
