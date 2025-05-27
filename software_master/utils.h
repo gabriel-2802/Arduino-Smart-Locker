@@ -17,7 +17,7 @@
 // Ultrasonic sensor
 #define TRIG_PIN 8
 #define ECHO_PIN 9
-#define PROXIMITY_THRESHOLD_CM 30
+#define PROXIMITY_THRESHOLD_CM 75
 
 // Buzzer
 #define BUZZER_PIN 7
@@ -42,22 +42,11 @@ char keys[KEYPAD_ROWS][KEYPAD_COLS] = {
 
 #define SLAVE_ADDRESS 0x08
 
-enum LockedPhase {PHASE_IDLE,
-  PHASE_WAIT_INPUT,
-  PHASE_VERIFY,
-  PHASE_GRANTED,
-  PHASE_DENIED
-};
+// States
+enum LockedPhase { PHASE_IDLE, PHASE_WAIT_INPUT, PHASE_VERIFY, PHASE_NOTIFICATION };
+enum UnlockedPhase { PHASE_UNLOCK_IDLE, PHASE_UNLOCK_OPTIONS, PHASE_NEW_CODE_SETUP };
+enum CodeSubPhase { CODE_ENTER, CODE_CONFIRM };
 
-enum UnlockedPhase {
-  PHASE_UNLOCK_IDLE,
-  PHASE_UNLOCK_OPTIONS,
-  PHASE_NEW_CODE_ENTER,
-  PHASE_NEW_CODE_CONFIRM,
-  PHASE_CODE_SUCCESS,
-  PHASE_CODE_FAIL,
-  PHASE_RELOCK
-};
 
 struct SensorPacket {
   uint8_t hour;
@@ -72,27 +61,5 @@ struct SensorPacket {
   bool tilt;
 } __attribute__((packed));
 
-Servo lockServo;
-LiquidCrystal_I2C lcd(0x27, 16, 2);
-Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, KEYPAD_ROWS, KEYPAD_COLS);
-SafeState safeState;
-
-unsigned long lastCheck = 0;
-unsigned long lastUserSeen = 0;
-bool userPresent = false;
-bool wasUserPresent = false;
-bool hasInteracted = false;
-
-LockedPhase lockedPhase = PHASE_IDLE;
-UnlockedPhase unlockedPhase = PHASE_UNLOCK_IDLE;
-
-String inputCode = "";
-String newCode = "";
-String confirmCode = "";
-unsigned long phaseStart = 0;
-unsigned long unlockPhaseStart = 0;
-int failedAttempts = 0;
-
-SensorPacket packet;
 
 #endif
